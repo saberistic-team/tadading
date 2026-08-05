@@ -25,10 +25,10 @@ async function main(): Promise<void> {
 
   await db
     .insert(schemaMeta)
-    .values({ key: "phase", value: "1" })
+    .values({ key: "phase", value: "2" })
     .onConflictDoUpdate({
       target: schemaMeta.key,
-      set: { value: "1", updatedAt: new Date() },
+      set: { value: "2", updatedAt: new Date() },
     });
 
   const fallback = getFallbackPuzzle();
@@ -96,7 +96,7 @@ async function main(): Promise<void> {
   }
 
   await sql.end({ timeout: 5 });
-  console.log(JSON.stringify({ message: "seed_complete", phase: "1", today }));
+  console.log(JSON.stringify({ message: "seed_complete", phase: "2", today }));
 }
 
 main().catch((error: unknown) => {

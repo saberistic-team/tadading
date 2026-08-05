@@ -1,18 +1,34 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import type { PublicPuzzleDto } from "@tadading/contracts";
-import { completePuzzle } from "../lib/api";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { CompleteAttemptResponse, PublicPuzzleDto } from "@tadading/contracts";
+import {
+  completeAttempt,
+  requestHint,
+  saveAttemptState,
+  startAttempt,
+} from "../lib/api";
 import { loadBoard, saveBoard, swapIndices, type BoardState } from "../lib/board";
 import { edgeStatuses, isRingComplete } from "../lib/compat";
 import { loadMuted, playTaDaDing, setMuted } from "../lib/sound";
+import {
+  applyLocalStreakDay,
+  loadLocalStreak,
+  saveLocalStreak,
+  type LocalStreak,
+} from "../lib/streak";
 import { RingBoard } from "./RingBoard";
 
 export function PuzzleGame({ puzzle }: { puzzle: PublicPuzzleDto }) {
   const [state, setState] = useState<BoardState>(() => loadBoard(puzzle));
   const [muted, setMutedState] = useState(false);
-  const [serverOk, setServerOk] = useState<boolean | null>(null);
   const [hint, setHint] = useState<string | null>(null);
+  const [share, setShare] = useState<
+    NonNullable<CompleteAttemptResponse["share"]> | null
+  >(null);
+  const [streak, setStreak] = useState<LocalStreak>(() => loadLocalStreak());
+  const [traceId, setTraceId] = useState<string | null>(null);
+  const completingRef = useRef(false);
 
   const edges = useMemo(
     () => edgeStatuses(puzzle, state.order),
@@ -28,17 +44,91 @@ export function PuzzleGame({ puzzle }: { puzzle: PublicPuzzleDto }) {
   }, [puzzle.id, state]);
 
   useEffect(() => {
-    if (!state.completed && isRingComplete(puzzle, state.order)) {
-      playTaDaDing();
-      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-        navigator.vibrate?.(40);
-      }
-      setState((prev) => ({ ...prev, completed: true, selectedIndex: null }));
-      void completePuzzle(puzzle.id, state.order).then((result) => {
-        setServerOk(result.ok);
+    let cancelled = false;
+    void startAttempt({
+      puzzleId: puzzle.id,
+      clientAttemptId: state.clientAttemptId,
+      initialOrder: puzzle.initialOrder,
+    }).then((attempt) => {
+      if (cancelled) return;
+      setState((prev) => {
+        const serverCompleted = Boolean(attempt.completedAt);
+        const preferServerOrder =
+          serverCompleted ||
+          (attempt.moves > 0 && Array.isArray(attempt.currentOrder));
+        return {
+          ...prev,
+          attemptId: attempt.id,
+          ...(preferServerOrder && attempt.currentOrder
+            ? { order: attempt.currentOrder }
+            : {}),
+          moves: Math.max(prev.moves, attempt.moves),
+          hintCount: Math.max(prev.hintCount, attempt.hintCount),
+          completed: serverCompleted || prev.completed,
+        };
       });
+      if (attempt.traceId) setTraceId(attempt.traceId);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [puzzle.id, state.clientAttemptId, puzzle.initialOrder]);
+
+  useEffect(() => {
+    if (!state.attemptId || state.completed) return;
+    const handle = window.setTimeout(() => {
+      void saveAttemptState({
+        attemptId: state.attemptId!,
+        currentOrder: state.order,
+        moves: state.moves,
+        hintCount: state.hintCount,
+      }).catch(() => undefined);
+    }, 400);
+    return () => window.clearTimeout(handle);
+  }, [
+    state.attemptId,
+    state.order,
+    state.moves,
+    state.hintCount,
+    state.completed,
+  ]);
+
+  useEffect(() => {
+    if (
+      state.completed ||
+      completingRef.current ||
+      !state.attemptId ||
+      !isRingComplete(puzzle, state.order)
+    ) {
+      return;
     }
-  }, [puzzle, state.order, state.completed]);
+    completingRef.current = true;
+    playTaDaDing();
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      navigator.vibrate?.(40);
+    }
+    const durationMs = Math.max(0, Date.now() - state.startedAtMs);
+    void completeAttempt({
+      attemptId: state.attemptId,
+      order: state.order,
+      moves: state.moves,
+      hintCount: state.hintCount,
+      durationMs,
+    }).then((result) => {
+      setState((prev) => ({ ...prev, completed: true, selectedIndex: null }));
+      if (result.share) setShare(result.share);
+      if (result.traceId) setTraceId(result.traceId);
+      const next = result.streak
+        ? {
+            currentCount: result.streak.currentCount,
+            longestCount: result.streak.longestCount,
+            lastCompletedDay: result.streak.lastCompletedDay,
+          }
+        : applyLocalStreakDay(loadLocalStreak(), puzzle.publicationDay);
+      saveLocalStreak(next);
+      setStreak(next);
+    });
+  }, [puzzle, state]);
 
   function select(index: number): void {
     if (state.completed) return;
@@ -55,6 +145,7 @@ export function PuzzleGame({ puzzle }: { puzzle: PublicPuzzleDto }) {
         order: nextOrder,
         selectedIndex: null,
         history: [...prev.history, prev.order],
+        moves: prev.moves + 1,
       };
     });
   }
@@ -64,30 +155,41 @@ export function PuzzleGame({ puzzle }: { puzzle: PublicPuzzleDto }) {
       if (prev.history.length === 0 || prev.completed) return prev;
       const history = [...prev.history];
       const order = history.pop()!;
-      return { ...prev, order, history, selectedIndex: null };
+      return {
+        ...prev,
+        order,
+        history,
+        selectedIndex: null,
+        moves: Math.max(0, prev.moves - 1),
+      };
     });
   }
 
   function reset(): void {
+    completingRef.current = false;
+    setShare(null);
     setState({
       order: [...puzzle.initialOrder],
       selectedIndex: null,
       history: [],
       completed: false,
+      clientAttemptId: crypto.randomUUID().replaceAll("-", ""),
+      attemptId: null,
+      moves: 0,
+      hintCount: 0,
+      startedAtMs: Date.now(),
     });
-    setServerOk(null);
     setHint(null);
   }
 
-  function requestHint(): void {
-    const broken = edges.findIndex((ok) => !ok);
-    if (broken === -1) {
-      setHint("Every neighbor already fits.");
-      return;
-    }
-    setHint(
-      `Look at tiles ${broken + 1} and ${(broken + 1) % 8 + 1} — they should share exactly one trait.`,
-    );
+  async function onHint(): Promise<void> {
+    if (!state.attemptId || state.completed) return;
+    const result = await requestHint({
+      attemptId: state.attemptId,
+      currentOrder: state.order,
+    });
+    setHint(result.message);
+    setState((prev) => ({ ...prev, hintCount: result.hintCount }));
   }
 
   return (
@@ -102,13 +204,17 @@ export function PuzzleGame({ puzzle }: { puzzle: PublicPuzzleDto }) {
       />
 
       <div className="game-toolbar" role="toolbar" aria-label="Puzzle controls">
-        <button type="button" onClick={undo} disabled={state.history.length === 0 || state.completed}>
+        <button
+          type="button"
+          onClick={undo}
+          disabled={state.history.length === 0 || state.completed}
+        >
           Undo
         </button>
         <button type="button" onClick={reset}>
           Reset
         </button>
-        <button type="button" onClick={requestHint} disabled={state.completed}>
+        <button type="button" onClick={() => void onHint()} disabled={state.completed}>
           Hint
         </button>
         <button
@@ -125,19 +231,33 @@ export function PuzzleGame({ puzzle }: { puzzle: PublicPuzzleDto }) {
 
       {hint ? <p className="hint">{hint}</p> : null}
 
+      <p className="meta" data-testid="streak-display">
+        Streak: {streak.currentCount} (best {streak.longestCount})
+      </p>
+
       {state.completed ? (
         <div className="complete" data-testid="completion">
           <h2>Ta-da-ding!</h2>
           <p>Your daily tiny win is complete.</p>
-          {serverOk === false ? (
-            <p className="meta">Local complete — server could not confirm yet.</p>
+          {share ? (
+            <div data-testid="share-card">
+              <p className="meta">{share.text}</p>
+              <button
+                type="button"
+                className="primary-cta"
+                onClick={() => {
+                  void navigator.clipboard?.writeText(share.text);
+                }}
+              >
+                Copy spoiler-free share
+              </button>
+            </div>
           ) : null}
-          <p className="cta-note">
-            <a href="/" className="quiet-link">
-              Save my streak
-            </a>{" "}
-            arrives in a later phase. Keep playing as a guest for now.
-          </p>
+          {traceId ? (
+            <p className="meta" data-testid="trace-id">
+              Trace: {traceId}
+            </p>
+          ) : null}
         </div>
       ) : (
         <p className="meta">

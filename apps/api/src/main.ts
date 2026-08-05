@@ -26,8 +26,34 @@ async function bootstrap(): Promise<void> {
     logger: false,
   });
   app.enableShutdownHooks();
+  const webOrigins = new Set(
+    [env.WEB_ORIGIN, env.WEB_ORIGIN.replace("localhost", "127.0.0.1")].filter(
+      Boolean,
+    ),
+  );
   app.enableCors({
-    origin: env.WEB_ORIGIN,
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
+    ) => {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+      if (webOrigins.has(origin)) {
+        callback(null, true);
+        return;
+      }
+      // Local Playwright / alternate ports (127.0.0.1 ↔ localhost).
+      if (
+        env.NODE_ENV !== "production" &&
+        /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+      ) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error(`CORS blocked for origin ${origin}`), false);
+    },
     credentials: true,
     allowedHeaders: ["Content-Type", "X-TadaDing-Guest-Id"],
   });
