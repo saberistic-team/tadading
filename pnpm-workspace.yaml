@@ -1,0 +1,12 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+allowBuilds:
+  esbuild: true
+  sharp: true
+  "@scarf/scarf": true
+
+shamefullyHoist: false
+strictPeerDependencies: false
+autoInstallPeers: true

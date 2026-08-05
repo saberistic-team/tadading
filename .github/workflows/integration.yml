@@ -1,0 +1,91 @@
+name: integration
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: integration-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: tadading
+          POSTGRES_PASSWORD: tadading
+          POSTGRES_DB: tadading
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tadading -d tadading"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgres://tadading:tadading@localhost:5432/tadading
+      REDIS_URL: redis://localhost:6379
+      BRAND_NAME: TadaDing
+      PUBLIC_DOMAIN: localhost
+      SOCIAL_HANDLE: playtadading
+      TAGLINE: Your daily tiny win.
+      WEB_ORIGIN: http://localhost:3000
+      API_ORIGIN: http://localhost:3001
+      NODE_ENV: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.20.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm --filter @tadading/config --filter @tadading/contracts --filter @tadading/db --filter @tadading/observability --filter @tadading/api build
+
+      - name: Migrate
+        run: pnpm db:migrate
+
+      - name: Seed
+        run: pnpm db:seed
+
+      - name: Start API
+        run: |
+          SERVICE_NAME=api PORT=3001 pnpm --filter @tadading/api start &
+          echo $! > /tmp/api.pid
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:3001/health/live >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "API failed to become live"
+          exit 1
+
+      - name: Assert ready
+        run: |
+          curl -fsS http://localhost:3001/health/ready | tee /tmp/ready.json
+          node -e "const fs=require('fs'); const b=JSON.parse(fs.readFileSync('/tmp/ready.json','utf8')); if(b.status!=='ready'){console.error(b); process.exit(1)}"
