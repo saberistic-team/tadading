@@ -14,6 +14,7 @@
     "test": "turbo run test",
     "test:unit": "turbo run test:unit",
     "test:integration": "turbo run test:integration",
+    "test:e2e": "pnpm --filter @tadading/web test:e2e",
     "db:generate": "pnpm --filter @tadading/db generate",
     "db:migrate": "pnpm --filter @tadading/db migrate",
     "db:seed": "pnpm --filter @tadading/db seed",

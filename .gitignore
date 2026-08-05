@@ -11,6 +11,8 @@ coverage
 .DS_Store
 playwright-report
 test-results
+apps/web/test-results
+apps/web/playwright-report
 openapi.generated.json
 .vercel
 *.tsbuildinfo

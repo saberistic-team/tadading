@@ -26,6 +26,11 @@ async function bootstrap(): Promise<void> {
     logger: false,
   });
   app.enableShutdownHooks();
+  app.enableCors({
+    origin: env.WEB_ORIGIN,
+    credentials: true,
+    allowedHeaders: ["Content-Type", "X-TadaDing-Guest-Id"],
+  });
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle(`${brand.brandName} API`)

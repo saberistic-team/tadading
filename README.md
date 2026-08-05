@@ -103,6 +103,7 @@ Blueprint services use free instance plans. Free tier does not support `preDeplo
 
 ## Phase status
 
-**Phase 0 — Foundation** (current): monorepo, config, health, Compose, CI, Render blueprint.
+**Phase 1 — Playable guest experience** (current): puzzle engine, today’s puzzle API, tutorial + ring UI, guest local play.
 
-Puzzle gameplay begins in Phase 1.
+- Web: `/` → `/tutorial` → `/play`
+- API: `GET /v1/puzzles/today`, `POST /v1/puzzles/:id/complete`

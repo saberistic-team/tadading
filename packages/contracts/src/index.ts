@@ -32,3 +32,33 @@ export const brandPublicResponseSchema = z.object({
 });
 
 export type BrandPublicResponse = z.infer<typeof brandPublicResponseSchema>;
+
+export const tileSchema = z.object({
+  id: z.string().min(1),
+  shape: z.enum(["circle", "triangle", "square", "star"]),
+  color: z.enum(["coral", "teal", "gold", "violet"]),
+  fill: z.enum(["solid", "striped"]),
+  count: z.union([z.literal(1), z.literal(2)]),
+});
+
+export const publicPuzzleSchema = z.object({
+  id: z.string().min(1),
+  publicationDay: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  generatorVersion: z.string().min(1),
+  difficulty: z.enum(["easy", "standard", "tricky"]),
+  tiles: z.array(tileSchema).length(8),
+  initialOrder: z.array(z.string().min(1)).length(8),
+  difficultyScore: z.number().int().min(1).max(100),
+});
+
+export type PublicPuzzleDto = z.infer<typeof publicPuzzleSchema>;
+
+export const completePuzzleRequestSchema = z.object({
+  order: z.array(z.string().min(1)).length(8),
+});
+
+export const completePuzzleResponseSchema = z.object({
+  ok: z.boolean(),
+  reason: z.string().optional(),
+});
+

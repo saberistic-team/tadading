@@ -10,3 +10,4 @@ allowBuilds:
 shamefullyHoist: false
 strictPeerDependencies: false
 autoInstallPeers: true
+confirmModulesPurge: false

@@ -43,6 +43,8 @@ export const serverEnvSchema = publicEnvSchema.extend({
   REDIS_URL: connectionString,
   PORT: z.coerce.number().int().positive().default(3101),
   HEALTH_PORT: z.coerce.number().int().positive().optional(),
+  PUZZLE_SEED_SECRET: nonEmpty.default("dev-puzzle-seed-secret-change-me"),
+  GUEST_HMAC_SECRET: nonEmpty.default("dev-guest-hmac-secret-change-me"),
 });
 
 export type ServerEnv = z.infer<typeof serverEnvSchema>;

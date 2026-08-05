@@ -21,6 +21,8 @@
     "seed": "tsx src/seed.ts"
   },
   "dependencies": {
+    "@tadading/domain": "workspace:*",
+    "@tadading/puzzle-engine": "workspace:*",
     "drizzle-orm": "^0.44.4",
     "postgres": "^3.4.7"
   },
