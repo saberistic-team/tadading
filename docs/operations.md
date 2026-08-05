@@ -19,6 +19,8 @@ Docker Compose provides Postgres, Redis, Temporal, Mailpit, OTEL, Prometheus, Gr
 
 `render.yaml` uses Render-managed PostgreSQL + Redis (Key Value), plus Docker services for web/api/worker.
 
+Free-tier note: Render free web services do **not** support `preDeployCommand`. The API applies Drizzle migrations on process start (`runMigrations`). Prefer a paid plan pre-deploy step later if you want migrations decoupled from boot.
+
 ### Strict self-hosted profile
 
 Possible later by deploying containerized Postgres/Redis/Temporal/observability as private services. Application code is profile-agnostic via `DATABASE_URL` / `REDIS_URL`. Strict single-node is **not** high availability.

@@ -25,7 +25,7 @@ services:
     dockerfilePath: ./apps/api/Dockerfile
     dockerContext: .
     healthCheckPath: /health/ready
-    preDeployCommand: node packages/db/dist/migrate.js
+    # Free tier does not support preDeployCommand; API runs migrations on boot.
     envVars:
       - key: NODE_ENV
         value: production

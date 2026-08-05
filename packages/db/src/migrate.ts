@@ -4,22 +4,20 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createSql } from "./client.js";
 
-const connectionString =
-  process.env.DATABASE_URL ??
-  "postgres://tadading:tadading@localhost:5433/tadading";
-
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const migrationsFolder = path.join(__dirname, "..", "drizzle");
 
-async function main(): Promise<void> {
-  const sql = createSql(connectionString);
-  const db = drizzle(sql);
-  await migrate(db, { migrationsFolder });
-  await sql.end({ timeout: 5 });
-  console.log(JSON.stringify({ message: "migrations_applied", migrationsFolder }));
+export function getMigrationsFolder(): string {
+  return path.join(__dirname, "..", "drizzle");
 }
 
-main().catch((error: unknown) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+export async function runMigrations(connectionString: string): Promise<string> {
+  const migrationsFolder = getMigrationsFolder();
+  const sql = createSql(connectionString);
+  try {
+    const db = drizzle(sql);
+    await migrate(db, { migrationsFolder });
+    return migrationsFolder;
+  } finally {
+    await sql.end({ timeout: 5 });
+  }
+}

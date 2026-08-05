@@ -2,6 +2,7 @@ import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { DocumentBuilder, SwaggerModule } from "@nestjs/swagger";
 import { loadServerEnv, toPublicBrand } from "@tadading/config";
+import { runMigrations } from "@tadading/db";
 import { createLogger, initTelemetry } from "@tadading/observability";
 import { AppModule } from "./app.module.js";
 
@@ -16,6 +17,10 @@ async function bootstrap(): Promise<void> {
     service: env.SERVICE_NAME,
     environment: env.NODE_ENV,
   });
+
+  // Free-tier Render does not support preDeployCommand; migrate on boot instead.
+  const migrationsFolder = await runMigrations(env.DATABASE_URL);
+  logger.log({ message: "migrations_applied", migrationsFolder });
 
   const app = await NestFactory.create(AppModule.register(env, brand), {
     logger: false,

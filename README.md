@@ -88,6 +88,8 @@ Until secrets exist, the deploy workflow fails clearly rather than pretending su
 
 Also set brand/origin env vars on Render services (`BRAND_NAME`, `PUBLIC_DOMAIN`, etc.).
 
+Free-tier Render does not support `preDeployCommand`; the API runs database migrations on boot instead.
+
 ## Documentation
 
 - [docs/architecture.md](docs/architecture.md)
