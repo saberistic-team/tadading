@@ -88,7 +88,7 @@ Until secrets exist, the deploy workflow fails clearly rather than pretending su
 
 Also set brand/origin env vars on Render services (`BRAND_NAME`, `PUBLIC_DOMAIN`, etc.).
 
-Blueprint services use paid `starter` / `basic-256mb` plans so `preDeployCommand` migrations work. The API also migrates on boot as a safety net.
+Blueprint services use free instance plans. Free tier does not support `preDeployCommand`; the API runs database migrations on boot.
 
 ## Documentation
 

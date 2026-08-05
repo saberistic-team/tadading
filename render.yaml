@@ -1,13 +1,13 @@
 # Managed-data production profile for Phase 0.
 # Strict self-hosted Postgres/Redis containers are documented in docs/operations.md.
-# Use paid instance plans so preDeployCommand is available (not supported on free).
+# Free instance plans: preDeployCommand is not supported; API migrates on boot.
 
 previewsEnabled: true
 previewsExpireAfterDays: 3
 
 databases:
   - name: tadading-postgres
-    plan: basic-256mb
+    plan: free
     databaseName: tadading
     user: tadading
     postgresMajorVersion: "16"
@@ -15,18 +15,17 @@ databases:
 services:
   - type: redis
     name: tadading-redis
-    plan: starter
+    plan: free
     maxmemoryPolicy: allkeys-lru
     ipAllowList: []
 
   - type: web
     name: tadading-api
     runtime: docker
-    plan: starter
+    plan: free
     dockerfilePath: ./apps/api/Dockerfile
     dockerContext: .
     healthCheckPath: /health/ready
-    preDeployCommand: node packages/db/dist/migrate-cli.js
     envVars:
       - key: NODE_ENV
         value: production
@@ -59,7 +58,7 @@ services:
   - type: web
     name: tadading-web
     runtime: docker
-    plan: starter
+    plan: free
     dockerfilePath: ./apps/web/Dockerfile
     dockerContext: .
     healthCheckPath: /
@@ -80,7 +79,7 @@ services:
   - type: worker
     name: tadading-worker
     runtime: docker
-    plan: starter
+    plan: free
     dockerfilePath: ./apps/worker/Dockerfile
     dockerContext: .
     envVars:
