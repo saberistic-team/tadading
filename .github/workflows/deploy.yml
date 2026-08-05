@@ -19,27 +19,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Require Render configuration
+      - name: Check Render configuration
+        id: config
         env:
           RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
           RENDER_DEPLOY_HOOK_API: ${{ secrets.RENDER_DEPLOY_HOOK_API }}
           RENDER_API_HEALTH_URL: ${{ secrets.RENDER_API_HEALTH_URL }}
         run: |
-          missing=0
-          if [ -z "$RENDER_API_KEY" ] && [ -z "$RENDER_DEPLOY_HOOK_API" ]; then
-            echo "Missing RENDER_API_KEY or RENDER_DEPLOY_HOOK_API"
-            missing=1
+          if [ -z "$RENDER_DEPLOY_HOOK_API" ] && [ -z "$RENDER_API_KEY" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Render deploy skipped — add RENDER_DEPLOY_HOOK_API and RENDER_API_HEALTH_URL to the render-preview GitHub Environment."
+            exit 0
           fi
           if [ -z "$RENDER_API_HEALTH_URL" ]; then
-            echo "Missing RENDER_API_HEALTH_URL (e.g. https://tadading-api.onrender.com/health/ready)"
-            missing=1
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Render deploy skipped — RENDER_API_HEALTH_URL is missing (e.g. https://tadading-api.onrender.com/health/ready)."
+            exit 0
           fi
-          if [ "$missing" -ne 0 ]; then
-            echo "::error::Render secrets are not configured. Add RENDER_DEPLOY_HOOK_API (or RENDER_API_KEY), and RENDER_API_HEALTH_URL to the render-preview GitHub Environment."
-            exit 1
-          fi
+          echo "configured=true" >> "$GITHUB_OUTPUT"
 
       - name: Trigger Render deploy
+        if: steps.config.outputs.configured == 'true'
         env:
           RENDER_DEPLOY_HOOK_API: ${{ secrets.RENDER_DEPLOY_HOOK_API }}
           RENDER_DEPLOY_HOOK_WEB: ${{ secrets.RENDER_DEPLOY_HOOK_WEB }}
@@ -61,6 +61,7 @@ jobs:
           trigger worker "${RENDER_DEPLOY_HOOK_WORKER:-}"
 
       - name: Wait for API health
+        if: steps.config.outputs.configured == 'true'
         env:
           RENDER_API_HEALTH_URL: ${{ secrets.RENDER_API_HEALTH_URL }}
         run: |
@@ -78,6 +79,7 @@ jobs:
           exit 1
 
       - name: Comment deploy status on PR
+        if: steps.config.outputs.configured == 'true' && github.event_name == 'pull_request'
         uses: actions/github-script@v7
         env:
           RENDER_API_HEALTH_URL: ${{ secrets.RENDER_API_HEALTH_URL }}

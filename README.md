@@ -84,7 +84,7 @@ GitHub Actions workflow [`.github/workflows/deploy.yml`](.github/workflows/deplo
 | `RENDER_API_HEALTH_URL` | e.g. `https://tadading-api.onrender.com/health/ready` |
 | `RENDER_API_KEY` | Optional alternative to deploy hooks |
 
-Until secrets exist, the deploy workflow fails clearly rather than pretending success.
+Until secrets exist in the `render-preview` environment, the deploy job skips with a warning (does not fail CI). Once set, it deploys and waits for `/health/ready`.
 
 Also set brand/origin env vars on Render services (`BRAND_NAME`, `PUBLIC_DOMAIN`, etc.).
 
