@@ -88,7 +88,7 @@ Until secrets exist, the deploy workflow fails clearly rather than pretending su
 
 Also set brand/origin env vars on Render services (`BRAND_NAME`, `PUBLIC_DOMAIN`, etc.).
 
-Free-tier Render does not support `preDeployCommand`; the API runs database migrations on boot instead.
+Blueprint services use paid `starter` / `basic-256mb` plans so `preDeployCommand` migrations work. The API also migrates on boot as a safety net.
 
 ## Documentation
 
