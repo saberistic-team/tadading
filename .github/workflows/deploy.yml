@@ -1,0 +1,102 @@
+name: deploy
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: deploy-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      pull-requests: write
+    environment: render-preview
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Render configuration
+        id: config
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_DEPLOY_HOOK_API: ${{ secrets.RENDER_DEPLOY_HOOK_API }}
+          RENDER_API_HEALTH_URL: ${{ secrets.RENDER_API_HEALTH_URL }}
+        run: |
+          if [ -z "$RENDER_DEPLOY_HOOK_API" ] && [ -z "$RENDER_API_KEY" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Render deploy skipped — add RENDER_DEPLOY_HOOK_API and RENDER_API_HEALTH_URL to the render-preview GitHub Environment."
+            exit 0
+          fi
+          if [ -z "$RENDER_API_HEALTH_URL" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Render deploy skipped — RENDER_API_HEALTH_URL is missing (e.g. https://tadading-api.onrender.com/health/ready)."
+            exit 0
+          fi
+          echo "configured=true" >> "$GITHUB_OUTPUT"
+
+      - name: Trigger Render deploy
+        if: steps.config.outputs.configured == 'true'
+        env:
+          RENDER_DEPLOY_HOOK_API: ${{ secrets.RENDER_DEPLOY_HOOK_API }}
+          RENDER_DEPLOY_HOOK_WEB: ${{ secrets.RENDER_DEPLOY_HOOK_WEB }}
+          RENDER_DEPLOY_HOOK_WORKER: ${{ secrets.RENDER_DEPLOY_HOOK_WORKER }}
+        run: |
+          set -euo pipefail
+          trigger() {
+            local name="$1"
+            local url="$2"
+            if [ -z "$url" ]; then
+              echo "Skipping $name deploy hook (not configured)"
+              return 0
+            fi
+            echo "Triggering $name"
+            curl -fsS -X POST "$url" | tee "/tmp/deploy-$name.json"
+          }
+          trigger api "$RENDER_DEPLOY_HOOK_API"
+          trigger web "${RENDER_DEPLOY_HOOK_WEB:-}"
+          trigger worker "${RENDER_DEPLOY_HOOK_WORKER:-}"
+
+      - name: Wait for API health
+        if: steps.config.outputs.configured == 'true'
+        env:
+          RENDER_API_HEALTH_URL: ${{ secrets.RENDER_API_HEALTH_URL }}
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 60); do
+            if curl -fsS "$RENDER_API_HEALTH_URL" | tee /tmp/render-ready.json; then
+              node -e "const fs=require('fs'); const b=JSON.parse(fs.readFileSync('/tmp/render-ready.json','utf8')); if(b.status!=='ready') process.exit(2);"
+              echo "Render API is ready"
+              exit 0
+            fi
+            echo "Attempt $i: not ready yet"
+            sleep 10
+          done
+          echo "Timed out waiting for Render health"
+          exit 1
+
+      - name: Comment deploy status on PR
+        if: steps.config.outputs.configured == 'true' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        env:
+          RENDER_API_HEALTH_URL: ${{ secrets.RENDER_API_HEALTH_URL }}
+        with:
+          script: |
+            const sha = context.payload.pull_request.head.sha;
+            const health = process.env.RENDER_API_HEALTH_URL;
+            const body = [
+              '## Render deploy',
+              '',
+              `- Commit: \`${sha}\``,
+              `- Health: ${health}`,
+              `- Status: ready check completed`,
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body,
+            });

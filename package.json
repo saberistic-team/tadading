@@ -1,0 +1,35 @@
+{
+  "name": "tadading",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.20.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "lint": "eslint apps packages scripts --max-warnings 0",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:unit": "turbo run test:unit",
+    "test:integration": "turbo run test:integration",
+    "db:generate": "pnpm --filter @tadading/db generate",
+    "db:migrate": "pnpm --filter @tadading/db migrate",
+    "db:seed": "pnpm --filter @tadading/db seed",
+    "compose:up": "docker compose up -d",
+    "compose:down": "docker compose down",
+    "smoke": "node scripts/smoke.mjs",
+    "verify": "pnpm lint && pnpm typecheck && pnpm test:unit && pnpm build && pnpm smoke",
+    "openapi:generate": "pnpm --filter @tadading/api openapi:generate"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.32.0",
+    "@types/node": "^22.17.0",
+    "eslint": "^9.32.0",
+    "turbo": "^2.5.5",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.39.0",
+    "vitest": "^3.2.4"
+  }
+}

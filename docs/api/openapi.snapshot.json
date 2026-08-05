@@ -1,0 +1,25 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "TadaDing API",
+    "version": "0.0.0",
+    "description": "Phase 0 snapshot placeholder — regenerate with pnpm openapi:generate when API is running-capable in CI."
+  },
+  "paths": {
+    "/health/live": {
+      "get": {
+        "summary": "Liveness"
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "summary": "Readiness"
+      }
+    },
+    "/v1/brand": {
+      "get": {
+        "summary": "Public brand configuration"
+      }
+    }
+  }
+}
