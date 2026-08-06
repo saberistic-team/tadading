@@ -1,5 +1,20 @@
 name: tadading
 
+x-app-env: &app-env
+  BRAND_NAME: ${BRAND_NAME:-TadaDing}
+  PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:-localhost}
+  SOCIAL_HANDLE: ${SOCIAL_HANDLE:-playtadading}
+  TAGLINE: "${TAGLINE:-Your daily tiny win.}"
+  WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:3100}
+  API_ORIGIN: ${API_ORIGIN:-http://localhost:3101}
+  NEXT_PUBLIC_API_ORIGIN: ${NEXT_PUBLIC_API_ORIGIN:-http://localhost:3101}
+  WORKER_ORIGIN: ${WORKER_ORIGIN:-http://localhost:3102}
+  DATABASE_URL: postgres://tadading:tadading@postgres:5432/tadading
+  REDIS_URL: redis://redis:6379
+  NODE_ENV: ${NODE_ENV:-production}
+  PUZZLE_SEED_SECRET: ${PUZZLE_SEED_SECRET:-dev-puzzle-seed-secret-change-me}
+  GUEST_HMAC_SECRET: ${GUEST_HMAC_SECRET:-dev-guest-hmac-secret-change-me}
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -93,6 +108,99 @@ services:
       - "3103:3000"
     depends_on:
       - prometheus
+
+  api:
+    profiles: ["apps"]
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      <<: *app-env
+      SERVICE_NAME: api
+      PORT: "3001"
+    ports:
+      - "3101:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3001/health/live').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  worker:
+    profiles: ["apps"]
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    environment:
+      <<: *app-env
+      SERVICE_NAME: worker
+      PORT: "3002"
+    ports:
+      - "3102:3002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3002/health/live').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  web:
+    profiles: ["apps"]
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        BRAND_NAME: ${BRAND_NAME:-TadaDing}
+        PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:-localhost}
+        SOCIAL_HANDLE: ${SOCIAL_HANDLE:-playtadading}
+        TAGLINE: "${TAGLINE:-Your daily tiny win.}"
+        NEXT_PUBLIC_API_ORIGIN: ${NEXT_PUBLIC_API_ORIGIN:-http://localhost:3101}
+    environment:
+      <<: *app-env
+      PORT: "3000"
+      HOSTNAME: "0.0.0.0"
+    ports:
+      - "3100:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
 
 volumes:
   postgres_data:

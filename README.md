@@ -18,6 +18,8 @@ Brand values are **environment-driven** (`BRAND_NAME`, `PUBLIC_DOMAIN`, `SOCIAL_
 
 ## Quick start
 
+Host apps against Compose infra:
+
 ```bash
 cp .env.example .env
 pnpm install
@@ -26,6 +28,17 @@ pnpm db:migrate
 pnpm db:seed
 pnpm dev
 ```
+
+Full stack in Docker (infra + api + worker + web):
+
+```bash
+cp .env.example .env
+pnpm stack:up
+pnpm stack:smoke
+```
+
+`pnpm compose:up` starts infra only (safe alongside `pnpm dev`).  
+`pnpm compose:stack` / `pnpm stack:up` also builds and runs the app containers (`apps` profile).
 
 Services locally:
 
@@ -63,32 +76,48 @@ SMOKE_SKIP_WEB=1 SMOKE_SKIP_WORKER=1 API_ORIGIN=http://localhost:3001 pnpm smoke
 
 | Script | Purpose |
 |--------|---------|
-| `pnpm compose:up` / `compose:down` | Local infra |
-| `pnpm db:migrate` / `db:seed` | Database |
+| `pnpm compose:up` / `compose:down` | Infra only (Postgres, Redis, Temporal, Mailpit, OTEL, Prometheus, Grafana) |
+| `pnpm compose:ps` / `compose:logs` | Compose status / follow all logs |
+| `pnpm compose:build` | Build api/web/worker images |
+| `pnpm compose:stack` | Infra + api + worker + web (`--profile apps`) |
+| `pnpm compose:stack:logs` / `compose:stack:restart` | App container logs / rebuild+recreate apps |
+| `pnpm stack:up` / `stack:down` / `stack:smoke` | Full stack up (seed) / tear down / smoke |
+| `pnpm fly:bootstrap` / `fly:deploy` | One-time Fly apps+DB scaffold / deploy all three apps |
+| `pnpm fly:deploy:api` / `web` / `worker` | Deploy a single Fly app |
+| `pnpm db:migrate` / `db:seed` | Database (host → published Postgres `5433`) |
 | `pnpm dev` / `build` / `lint` / `typecheck` | Day-to-day |
 | `pnpm test:unit` | Unit tests |
 | `pnpm smoke` | Health smoke checks |
 | `pnpm verify` | lint + typecheck + unit + build + smoke |
 
-## Deploy (Render)
+## Deploy (Fly.io)
 
-Blueprint: [`render.yaml`](render.yaml) (managed Postgres + Redis profile).
+Per-app configs (Docker build context = repo root):
 
-GitHub Actions workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) deploys on pull requests when these **GitHub Environment `render-preview` secrets** are set:
+- [`apps/api/fly.toml`](apps/api/fly.toml) → `tadading-api`
+- [`apps/web/fly.toml`](apps/web/fly.toml) → `tadading-web`
+- [`apps/worker/fly.toml`](apps/worker/fly.toml) → `tadading-worker`
+
+One-time bootstrap (creates apps + Postgres attach prompts):
+
+```bash
+# install flyctl: https://fly.io/docs/flyctl/install/
+fly auth login
+pnpm fly:bootstrap
+# finish Redis + secret steps printed by the script
+pnpm fly:deploy
+```
+
+GitHub Actions workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) deploys on pull requests when these **GitHub Environment `fly-preview` secrets** are set:
 
 | Secret | Purpose |
 |--------|---------|
-| `RENDER_DEPLOY_HOOK_API` | Deploy hook URL for `tadading-api` (required) |
-| `RENDER_DEPLOY_HOOK_WEB` | Deploy hook for `tadading-web` (optional) |
-| `RENDER_DEPLOY_HOOK_WORKER` | Deploy hook for `tadading-worker` (optional) |
-| `RENDER_API_HEALTH_URL` | e.g. `https://tadading-api.onrender.com/health/ready` |
-| `RENDER_API_KEY` | Optional alternative to deploy hooks |
+| `FLY_API_TOKEN` | Deploy token (`fly tokens create deploy`) — required |
+| `FLY_API_HEALTH_URL` | Optional override; default `https://tadading-api.fly.dev/health/ready` |
 
-Until secrets exist in the `render-preview` environment, the deploy job skips with a warning (does not fail CI). Once set, it deploys and waits for `/health/ready`.
+Until `FLY_API_TOKEN` exists in the `fly-preview` environment, the deploy job skips with a warning (does not fail CI). Once set, it deploys api → worker → web and waits for `/health/ready`.
 
-Also set brand/origin env vars on Render services (`BRAND_NAME`, `PUBLIC_DOMAIN`, etc.).
-
-Blueprint services use free instance plans. Free tier does not support `preDeployCommand`; the API runs database migrations on boot.
+Brand/origin defaults live in each `fly.toml`. Override with `fly secrets set` when you attach a custom domain. The API runs database migrations on boot.
 
 ## Documentation
 

@@ -1,0 +1,55 @@
+# Deploy from repo root:
+#   fly deploy --remote-only --config apps/web/fly.toml
+#
+# NEXT_PUBLIC_API_ORIGIN is baked at image build time — keep it aligned with
+# the API app hostname (or pass --build-arg when deploying).
+
+app = "tadading-web"
+primary_region = "iad"
+kill_signal = "SIGTERM"
+kill_timeout = 30
+
+[build]
+  dockerfile = "apps/web/Dockerfile"
+
+  [build.args]
+    BRAND_NAME = "TadaDing"
+    PUBLIC_DOMAIN = "tadading-web.fly.dev"
+    SOCIAL_HANDLE = "playtadading"
+    TAGLINE = "Your daily tiny win."
+    NEXT_PUBLIC_API_ORIGIN = "https://tadading-api.fly.dev"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "3000"
+  HOSTNAME = "0.0.0.0"
+  BRAND_NAME = "TadaDing"
+  PUBLIC_DOMAIN = "tadading-web.fly.dev"
+  SOCIAL_HANDLE = "playtadading"
+  TAGLINE = "Your daily tiny win."
+  NEXT_PUBLIC_API_ORIGIN = "https://tadading-api.fly.dev"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 100
+    hard_limit = 150
+
+[[http_service.checks]]
+  grace_period = "30s"
+  interval = "15s"
+  method = "GET"
+  timeout = "5s"
+  path = "/"
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

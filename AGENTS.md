@@ -30,4 +30,4 @@ See README. Default verification: `pnpm verify` (requires local services for smo
 
 ## After each phase
 
-Stop and report: summary, files, ADRs, migrations, commands, tests, security, risks, PR title/body, Render checklist, smoke checklist, rollback.
+Stop and report: summary, files, ADRs, migrations, commands, tests, security, risks, PR title/body, Fly.io checklist, smoke checklist, rollback.

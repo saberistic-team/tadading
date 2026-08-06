@@ -47,4 +47,6 @@ jobs:
           path: |
             package.json
             pnpm-lock.yaml
-            render.yaml
+            apps/api/fly.toml
+            apps/web/fly.toml
+            apps/worker/fly.toml

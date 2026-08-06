@@ -18,7 +18,7 @@ async function bootstrap(): Promise<void> {
     environment: env.NODE_ENV,
   });
 
-  // Free-tier Render does not support preDeployCommand; migrate on boot instead.
+  // Migrations run on API boot (idempotent). Keeps Fly deploys simple without a release_command.
   const migrationsFolder = await runMigrations(env.DATABASE_URL);
   logger.log({ message: "migrations_applied", migrationsFolder });
 

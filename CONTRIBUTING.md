@@ -13,7 +13,7 @@
 
 - One logical change per PR when practical.
 - CI must pass (`ci`, `integration`).
-- Deploy workflow runs on PRs once Render secrets are configured in the `render-preview` GitHub Environment.
+- Deploy workflow runs on PRs once Fly secrets are configured in the `fly-preview` GitHub Environment.
 - Do not commit `.env`, secrets, or webhook payloads.
 
 ## Code style
