@@ -3,6 +3,7 @@ import { NestFactory } from "@nestjs/core";
 import { loadServerEnv, toPublicBrand } from "@tadading/config";
 import { createLogger, initTelemetry } from "@tadading/observability";
 import { AppModule } from "./app.module.js";
+import { startOutboxDispatcher } from "./outbox-dispatcher.js";
 
 async function bootstrap(): Promise<void> {
   const env = loadServerEnv({
@@ -22,12 +23,32 @@ async function bootstrap(): Promise<void> {
   });
   app.enableShutdownHooks();
 
+  const dispatcher = await startOutboxDispatcher({
+    databaseUrl: env.DATABASE_URL,
+    redisUrl: env.REDIS_URL,
+    environment: env.NODE_ENV,
+  });
+
+  app.enableShutdownHooks();
   await app.listen(env.PORT);
+
   logger.log({
     message: "worker_listening",
     port: env.PORT,
     brand: brand.brandName,
-    note: "Phase 0 worker exposes health only; BullMQ/Temporal arrive later",
+    note: "BullMQ outbox dispatcher active",
+  });
+
+  const shutdown = async (): Promise<void> => {
+    await dispatcher.stop();
+    await app.close();
+  };
+
+  process.on("SIGTERM", () => {
+    void shutdown();
+  });
+  process.on("SIGINT", () => {
+    void shutdown();
   });
 }
 

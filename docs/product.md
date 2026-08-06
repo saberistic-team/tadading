@@ -4,17 +4,18 @@
 **Tagline:** Your daily tiny win.  
 **Promise:** Swap eight cheerful tiles until every neighbor fits. Close the ring, hear the ding, keep the streak.
 
-## Phase 0 surface
+## Phase 2 surface
 
-- Web hello page showing env-driven brand
-- API `/health/live`, `/health/ready`, `/v1/brand`
-- Worker health endpoints
+- Landing → tutorial → daily ring play
+- Anonymous guest play (local guest ID, server HMAC acknowledgment)
+- Attempt start/save/complete/hint APIs with server validation
+- Guest streak (server + localStorage) and spoiler-free share card
+- Transactional outbox + BullMQ dispatcher; trace IDs on attempt reads
 
-## Upcoming product surface (later phases)
+## Upcoming (later phases)
 
-- Anonymous daily puzzle play before signup
 - Passkey save-streak flow after first completion
-- Free today puzzle; member archive/practice/themes at $5.99 / $29.99
+- Member archive/practice/themes at $5.99 / $29.99
 - No ads, no UGC, no third-party content feeds
 
 Full rationale lives in [`business.md`](../business.md).

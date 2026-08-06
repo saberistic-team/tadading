@@ -4,6 +4,10 @@
   --accent: #0f766e;
   --muted: #57534e;
   --glow: #ccfbf1;
+  --tile-coral: #e11d48;
+  --tile-teal: #0f766e;
+  --tile-gold: #ca8a04;
+  --tile-violet: #6d28d9;
 }
 
 * {
@@ -26,13 +30,19 @@ body {
     linear-gradient(160deg, #faf7f2, var(--paper) 55%, #e7e5e4);
 }
 
-.shell {
+a {
+  color: var(--accent);
+}
+
+.shell,
+.page {
   min-height: 100vh;
   display: grid;
   align-content: center;
   gap: 0.75rem;
-  padding: 2rem;
+  padding: 1.5rem;
   max-width: 42rem;
+  margin: 0 auto;
 }
 
 .eyebrow {
@@ -46,28 +56,240 @@ body {
 
 h1 {
   margin: 0;
-  font-size: clamp(2.75rem, 8vw, 4.5rem);
+  font-size: clamp(2.4rem, 8vw, 4rem);
   line-height: 0.95;
   letter-spacing: -0.03em;
 }
 
-.tagline {
+h2 {
   margin: 0;
-  font-size: 1.25rem;
-  color: var(--muted);
 }
 
+.tagline,
 .meta,
-.cta-note {
+.cta-note,
+.hint {
   margin: 0;
   font-family: ui-sans-serif, system-ui, sans-serif;
   color: var(--muted);
   font-size: 0.95rem;
 }
 
-code {
+.primary-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.85rem 1.25rem;
+  border: 0;
+  background: var(--ink);
+  color: #fff;
+  text-decoration: none;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.primary-cta:focus-visible,
+button:focus-visible,
+.tile:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.quiet-link {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.game {
+  display: grid;
+  gap: 1rem;
+  justify-items: center;
+}
+
+.ring {
+  position: relative;
+  width: min(92vw, 26rem);
+  aspect-ratio: 1;
+  margin: 0.5rem auto;
+}
+
+.ring-celebrate {
+  animation: pulse 0.8s ease;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.98);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ring-celebrate {
+    animation: none;
+  }
+}
+
+.ring-slot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+
+.ring-center {
+  position: absolute;
+  inset: 42%;
+  display: grid;
+  place-items: center;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.tile {
+  width: 4.25rem;
+  height: 4.25rem;
+  min-width: 44px;
+  min-height: 44px;
+  border: 2px solid var(--ink);
+  background: #fff;
+  color: var(--tile-color);
+  border-radius: 0.75rem;
+  display: grid;
+  place-items: center;
+  position: relative;
+  cursor: pointer;
+  padding: 0;
+}
+
+.tile-selected {
+  box-shadow: 0 0 0 3px var(--accent);
+}
+
+.fill-striped {
+  background: repeating-linear-gradient(
+    -45deg,
+    #fff,
+    #fff 4px,
+    color-mix(in srgb, var(--tile-color) 18%, #fff) 4px,
+    color-mix(in srgb, var(--tile-color) 18%, #fff) 8px
+  );
+}
+
+.shape {
+  width: 1.6rem;
+  height: 1.6rem;
+  background: var(--tile-color);
+}
+
+.shape-circle {
+  border-radius: 999px;
+}
+
+.shape-triangle {
+  width: 0;
+  height: 0;
+  background: transparent;
+  border-left: 0.85rem solid transparent;
+  border-right: 0.85rem solid transparent;
+  border-bottom: 1.5rem solid var(--tile-color);
+}
+
+.shape-square {
+  border-radius: 0.15rem;
+}
+
+.shape-star {
+  clip-path: polygon(
+    50% 0%,
+    61% 35%,
+    98% 35%,
+    68% 57%,
+    79% 91%,
+    50% 70%,
+    21% 91%,
+    32% 57%,
+    2% 35%,
+    39% 35%
+  );
+}
+
+.marks {
+  position: absolute;
+  bottom: 0.2rem;
+  font-size: 0.7rem;
   color: var(--ink);
-  background: #ffffffaa;
-  padding: 0.1rem 0.35rem;
-  border-radius: 0.25rem;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.sr-pattern {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.edge-marker {
+  position: absolute;
+  left: 50%;
+  top: -0.55rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  border: 2px solid transparent;
+  border-radius: 2px;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.edge-marker.on {
+  border-color: var(--ink);
+  background: #fff;
+}
+
+.edge-ok .tile {
+  border-style: solid;
+}
+
+.game-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.game-toolbar button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid #d6d3d1;
+  background: #fff;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  cursor: pointer;
+}
+
+.game-toolbar button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.complete {
+  text-align: center;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.tutorial-demo {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
 }

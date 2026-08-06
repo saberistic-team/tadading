@@ -6,7 +6,7 @@ Build a small, complete, maintainable production subscription product. Prefer wo
 
 ## Current phase
 
-**Phase 0 — Foundation.** Do not implement the puzzle engine, auth, Stripe, or Temporal workflows until explicitly told to continue.
+**Phase 2 — Attempts, streaks, and events.** Do not implement passkeys, Stripe, or Temporal puzzle workflows until explicitly told to continue to Phase 3.
 
 ## Architecture rules
 

@@ -6,7 +6,7 @@ This repository is a pnpm + Turborepo modular monolith with three deployables:
 
 - `apps/web` — Next.js App Router
 - `apps/api` — NestJS HTTP API
-- `apps/worker` — NestJS worker (health-only in Phase 0)
+- `apps/worker` — NestJS worker (health + BullMQ outbox dispatcher)
 
 Brand values are **environment-driven** (`BRAND_NAME`, `PUBLIC_DOMAIN`, `SOCIAL_HANDLE`). Domain purchase can happen later without code changes.
 
@@ -103,6 +103,8 @@ Blueprint services use free instance plans. Free tier does not support `preDeplo
 
 ## Phase status
 
-**Phase 0 — Foundation** (current): monorepo, config, health, Compose, CI, Render blueprint.
+**Phase 2 — Attempts, streaks, events** (current): attempt persistence, guest streaks, transactional outbox, BullMQ dispatcher, spoiler-free share.
 
-Puzzle gameplay begins in Phase 1.
+- Web: `/` → `/tutorial` → `/play` (local board + streak + share card)
+- API: attempt start/save/complete/hint; `GET /v1/attempts/:id` includes outbox event ids/trace
+- Worker: outbox → BullMQ → inbox dispatch

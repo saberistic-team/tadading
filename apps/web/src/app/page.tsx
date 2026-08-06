@@ -1,27 +1,25 @@
+import Link from "next/link";
 import { getPublicBrand } from "../lib/brand";
 
 export default function HomePage() {
   const brand = getPublicBrand();
-  const apiOrigin =
-    process.env.NEXT_PUBLIC_API_ORIGIN ??
-    process.env.API_ORIGIN ??
-    "http://localhost:3101";
 
   return (
     <main className="shell">
-      <p className="eyebrow">Phase 0 foundation</p>
-      <h1>{brand.brandName}</h1>
+      <p className="eyebrow">{brand.brandName}</p>
+      <h1>Your daily tiny win is ready.</h1>
       <p className="tagline">{brand.tagline}</p>
       <p className="meta">
-        Domain config: <code>{brand.publicDomain}</code> · Social:{" "}
-        <code>@{brand.socialHandle}</code>
+        Swap eight cheerful tiles until every neighbor fits. Close the ring,
+        hear the ding, keep the streak.
       </p>
-      <p className="meta">
-        API origin: <code>{apiOrigin}</code>
+      <p>
+        <Link className="primary-cta" href="/tutorial" data-testid="cta-play">
+          Play today&apos;s {brand.brandName}
+        </Link>
       </p>
       <p className="cta-note">
-        Playable puzzle arrives in Phase 1. Health endpoints are live on the API
-        and worker today.
+        No account needed. Play as a guest in under three minutes.
       </p>
     </main>
   );

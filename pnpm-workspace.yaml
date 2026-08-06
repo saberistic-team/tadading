@@ -6,7 +6,9 @@ allowBuilds:
   esbuild: true
   sharp: true
   "@scarf/scarf": true
+  msgpackr-extract: true
 
 shamefullyHoist: false
 strictPeerDependencies: false
 autoInstallPeers: true
+confirmModulesPurge: false
