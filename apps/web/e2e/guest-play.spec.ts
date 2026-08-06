@@ -40,7 +40,16 @@ test("guest can load and complete today's puzzle", async ({ page, request }) => 
     ({ puzzleId, order }) => {
       window.localStorage.setItem(
         `tadading.board.${puzzleId}`,
-        JSON.stringify({ order, history: [], completed: false }),
+        JSON.stringify({
+          order,
+          history: [],
+          completed: false,
+          clientAttemptId: crypto.randomUUID().replaceAll("-", ""),
+          attemptId: null,
+          moves: 0,
+          hintCount: 0,
+          startedAtMs: Date.now(),
+        }),
       );
     },
     { puzzleId: puzzle.id, order: solution! },
@@ -49,7 +58,11 @@ test("guest can load and complete today's puzzle", async ({ page, request }) => 
   await page.reload();
   await expect(page.getByTestId("completion")).toBeVisible({ timeout: 15_000 });
   await expect(page.getByText("Ta-da-ding!")).toBeVisible();
+  await expect(page.getByTestId("share-card")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId("streak-display")).toContainText("Streak:");
+  await expect(page.getByTestId("trace-id")).toBeVisible();
 });
+
 
 test("swap interaction updates selection", async ({ page }) => {
   await page.goto("/play");

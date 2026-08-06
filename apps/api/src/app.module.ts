@@ -1,5 +1,7 @@
 import { DynamicModule, Module } from "@nestjs/common";
 import type { PublicBrand, ServerEnv } from "@tadading/config";
+import { AttemptsController } from "./attempts.controller.js";
+import { AttemptsService } from "./attempts.service.js";
 import { BrandController } from "./brand.controller.js";
 import { HealthController } from "./health.controller.js";
 import { HealthService } from "./health.service.js";
@@ -12,7 +14,12 @@ export class AppModule {
   static register(env: ServerEnv, brand: PublicBrand): DynamicModule {
     return {
       module: AppModule,
-      controllers: [HealthController, BrandController, PuzzlesController],
+      controllers: [
+        HealthController,
+        BrandController,
+        PuzzlesController,
+        AttemptsController,
+      ],
       providers: [
         { provide: SERVER_ENV, useValue: env },
         { provide: PUBLIC_BRAND, useValue: brand },
@@ -29,6 +36,10 @@ export class AppModule {
         {
           provide: PuzzlesService,
           useFactory: () => new PuzzlesService(env.DATABASE_URL),
+        },
+        {
+          provide: AttemptsService,
+          useFactory: () => new AttemptsService(env.DATABASE_URL),
         },
       ],
     };

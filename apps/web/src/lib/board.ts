@@ -7,27 +7,37 @@ export type BoardState = {
   selectedIndex: number | null;
   history: string[][];
   completed: boolean;
+  clientAttemptId: string;
+  attemptId: string | null;
+  moves: number;
+  hintCount: number;
+  startedAtMs: number;
 };
 
+function newClientAttemptId(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 export function loadBoard(puzzle: PublicPuzzleDto): BoardState {
-  if (typeof window === "undefined") {
-    return {
-      order: [...puzzle.initialOrder],
-      selectedIndex: null,
-      history: [],
-      completed: false,
-    };
-  }
+  const fresh = (): BoardState => ({
+    order: [...puzzle.initialOrder],
+    selectedIndex: null,
+    history: [],
+    completed: false,
+    clientAttemptId: newClientAttemptId(),
+    attemptId: null,
+    moves: 0,
+    hintCount: 0,
+    startedAtMs: Date.now(),
+  });
+
+  if (typeof window === "undefined") return fresh();
+
   try {
     const raw = window.localStorage.getItem(boardKey(puzzle.id));
-    if (!raw) {
-      return {
-        order: [...puzzle.initialOrder],
-        selectedIndex: null,
-        history: [],
-        completed: false,
-      };
-    }
+    if (!raw) return fresh();
     const parsed = JSON.parse(raw) as BoardState;
     if (!Array.isArray(parsed.order) || parsed.order.length !== 8) {
       throw new Error("bad board");
@@ -37,14 +47,14 @@ export function loadBoard(puzzle: PublicPuzzleDto): BoardState {
       selectedIndex: null,
       history: Array.isArray(parsed.history) ? parsed.history : [],
       completed: Boolean(parsed.completed),
+      clientAttemptId: parsed.clientAttemptId || newClientAttemptId(),
+      attemptId: parsed.attemptId ?? null,
+      moves: parsed.moves ?? 0,
+      hintCount: parsed.hintCount ?? 0,
+      startedAtMs: parsed.startedAtMs ?? Date.now(),
     };
   } catch {
-    return {
-      order: [...puzzle.initialOrder],
-      selectedIndex: null,
-      history: [],
-      completed: false,
-    };
+    return fresh();
   }
 }
 
@@ -56,6 +66,11 @@ export function saveBoard(puzzleId: string, state: BoardState): void {
       order: state.order,
       history: state.history.slice(-40),
       completed: state.completed,
+      clientAttemptId: state.clientAttemptId,
+      attemptId: state.attemptId,
+      moves: state.moves,
+      hintCount: state.hintCount,
+      startedAtMs: state.startedAtMs,
     }),
   );
 }
